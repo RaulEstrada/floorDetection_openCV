@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Floor_detection_web_service</string>
+    <string name="sensor1">panos</string>
+    <string name="buttonClicked">start</string>
+    <string name="buttonUnClicked">buttonUNclicked</string>
+    <string name="sensor2">s2</string>
+</resources>
