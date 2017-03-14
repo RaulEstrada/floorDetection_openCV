@@ -6,6 +6,7 @@ package com.example.pvala.floor_detection_web_service;
 
 import android.graphics.ImageFormat;
 import android.media.Image;
+import android.os.Environment;
 import android.util.Log;
 
 import org.opencv.core.CvType;
@@ -24,9 +25,34 @@ public class ImageTools {
     private final String TAG_R = "READING";
     public static int kval = 0;
 
+//    public Mat ReadImage(File path, String name) {
+//
+//        File file = new File(path, name);
+//        Mat src = null;
+//        String filename = file.toString();
+//        // 2.4.11
+//        src = Imgcodecs.imread(filename, Imgcodecs.CV_LOAD_IMAGE_COLOR);
+//        // 3.0.0
+//        // src = Imgcodecs.imread(filename, Imgcodecs.CV_LOAD_IMAGE_COLOR);
+//
+//        if (!src.empty()) {
+//            Log.i(TAG_R, "SUCCESS Reading the image " + name);
+//            Imgproc.resize(src, src, new Size(320, 240));
+//        } else {
+//            Log.d(TAG_R, "Fail Reading the image " + name);
+//            return null;
+//        }
+//        return src;
+//
+//    }
+
     public Mat ReadImage(File path, String name) {
 
-        File file = new File(path, name);
+        String dirName = "Cam 2 Pictures";
+
+        //File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
+        File file = new File(path, dirName);
+
         Mat src = null;
         String filename = file.toString();
         // 2.4.11
@@ -36,7 +62,7 @@ public class ImageTools {
 
         if (!src.empty()) {
             Log.i(TAG_R, "SUCCESS Reading the image " + name);
-            Imgproc.resize(src, src, new Size(320, 240));
+            Imgproc.resize(src, src, new Size(500, 500));
         } else {
             Log.d(TAG_R, "Fail Reading the image " + name);
             return null;
@@ -44,6 +70,7 @@ public class ImageTools {
         return src;
 
     }
+
 
     public void SaveImage(Mat img, String name) {
         File ph = new File("sdcard/Floor/Output");

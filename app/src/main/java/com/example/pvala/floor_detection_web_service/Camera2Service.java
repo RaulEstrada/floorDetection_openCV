@@ -32,6 +32,9 @@ import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import java.util.Random;
+
+
 /**
  * Created by Panos on 11/11/2016.
  */
@@ -66,6 +69,7 @@ public class Camera2Service extends Service {
     private HandlerThread mBackgroundThread;
     private Handler mBackgroundHandler;
     public static boolean active = false;
+    ImageTools mat = new ImageTools();
 
 
     /**
@@ -151,7 +155,6 @@ public class Camera2Service extends Service {
             /*the full code below would also have "if-else" or "else" statements
             * to check for other types of retrieved images/files */
             if (img.getFormat() == ImageFormat.JPEG) {
-
                 //check if we have external storage to write to. if we do, save acquired image
                 if (isExternalStorageWritable())
                 {
@@ -166,9 +169,9 @@ public class Camera2Service extends Service {
                         buffer = img.getPlanes()[0].getBuffer();
                         bytes = new byte[buffer.remaining()];
                         buffer.get(bytes);
-                     //   Save(bytes, imgFile);
-                        SendToServer(bytes);
+                        Save(bytes, imgFile);
                         img.close();
+                        //ImposedImageArray(imgFile);
                     } catch (Exception e) {
                         Log.i("Exception e", "ImageFormat.JPEG,,,,,,,,Exception eException e");
                         e.getStackTrace();
@@ -178,36 +181,26 @@ public class Camera2Service extends Service {
         }
     };
 
-    /* the following method creates a file with a JPEG extension. this is done
-    * in an attempt to create a file to be ready to receive the bytes of the
-    * image acquired*/
-    private File CreateJPEG() {
+    private void ImposedImageArray(File imageFile) {
 
-        //name for the future file-to-be
-        final long timestamp = System.currentTimeMillis();
-        String dirName = "Cam 2 Pictures";
+        //create loop of 1250, and initialize to 0/1 randomly. Superimpose
+        //all indexes that have a 1 to the main image
+        Random rand = new Random();
+        int  n = rand.nextInt(2);
 
-        //this is the location of the saved file
-        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
-        if (!dir.exists()) {
-            dir.mkdir();
-        }
-        //formats the name of the file to a string
-        String sFilename = String.format("%d.jpg", timestamp);
+        // Log.i("saveImg", "save code running");
+        //  Log.i("abcd", imageFile.getName());
 
-        //returns the location of the created file and its name
-        return new File(dir, sFilename);
-    }
+      //  mat.ReadImage(imageFile, imageFile.getName());
+        //READING
 
-    private void SendToServer(byte[] bytes) {
 
-        //sets up variable to receive bytes
-        OutputStream oOutputStream = null;
-
-        /* the following try-catch is usedto write the bytes of the image to
-        * a file. a new outputstream is created of the imageFile which is passed
-        * into this method, and the ytes passed in are the ones used to make the imageFile a
-        * viewable image. */
+//        //sets up variable to receive bytes
+//        OutputStream oOutputStream = null;
+//        /* the following try-catch is used to write the bytes of the image to
+//        * a file. a new outputstream is created of the imageFile which is passed
+//        * into this method, and the bytes passed in are the ones used to make the imageFile a
+//        * viewable image. */
 //        try {
 //            oOutputStream = new FileOutputStream(imageFile);
 //            oOutputStream.write(bytes);
@@ -222,39 +215,63 @@ public class Camera2Service extends Service {
 //                throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
 //            }
 //        }
+//
+//        //save image to phone
+//        try {
+//            oOutputStream = new FileOutputStream(imageFile);
+//            oOutputStream.write(bytes);
+//        } catch (Exception ex) {
+//            throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
+//        } finally {
+//            try {
+//                if (oOutputStream != null) {
+//                    oOutputStream.close();
+//                }
+//            } catch (Exception ex) {
+//                throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
+//            }
+//        }
+       // Log.i("saveImg", "save code running");
+      //  Log.i("abcd", imageFile.getName());
 
-        String imgBytes = new String(bytes);
-        // String iB = JSONObject.numberToString(bytes);
-        String[] imgByteArray = new String[imgBytes.length()];
-        for(int i = 0; i < imgBytes.length(); i++)
-        {
-            imgByteArray[i] = String.valueOf(imgBytes.charAt(i));
-            //Log.i("byte", imgByteArray[i]);
-        }
-        //Log.i("byte", imgByteArray[5]);
-        String imgArray = imgByteArray.toString();
-        try {
+       // mat.ReadImage(imageFile, imageFile.getName());
+        //READING
 
-            JSONObject obj = new JSONObject(imgArray);
-
-            Log.d("My App", obj.toString());
-
-        } catch (Throwable t) {
-            Log.e("byte", "Error \"" + imgArray + "\"");
-        }
-
-        /********************************************************/
-        try {
-            String url = "http://75.115.43.53:8000";    //replace with 127.0.0.1:8000/images
-            HttpClient httpclient = new HttpClient();
-            httpclient.UpdateRemote(url,imgArray,this);
-        }catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Log.i("server", "server code running");
 
     }
+
+
+
+
+    /* the following method creates a file with a JPEG extension. this is done
+    * in an attempt to create a file to be ready to receive the bytes of the
+    * image acquired*/
+    private File CreateJPEG() {
+
+        //name for the future file-to-be
+        final long timestamp = System.currentTimeMillis();
+        String dirName = "Cam 2 Pictures";
+//
+//        //this is the location of the saved file
+        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+        //formats the name of the file to a string
+        String sFilename = String.format("%d.jpg", timestamp);
+
+//        try {
+//            mat.ReadImage(dir, sFilename);
+//        }
+//        catch (Exception ex) {
+//            Log.i("READING", "mat failed");
+//        }
+
+
+        //returns the location of the created file and its name
+        return new File(dir, sFilename);
+    }
+
 
     /* the following method saves the acquired bytes to the newly created file from
     * CreateJPEG()*/
@@ -282,29 +299,6 @@ public class Camera2Service extends Service {
             }
         }
 
-        String imgBytes = new String(bytes);
-       // String iB = JSONObject.numberToString(bytes);
-        String[] imgByteArray = new String[imgBytes.length()];
-        for(int i = 0; i < imgBytes.length(); i++)
-        {
-            imgByteArray[i] = String.valueOf(imgBytes.charAt(i));
-            //Log.i("byte", imgByteArray[i]);
-
-        }
-        //Log.i("byte", imgByteArray[5]);
-        String imgArray = imgByteArray.toString();
-        try {
-
-            JSONObject obj = new JSONObject(imgArray);
-
-            Log.d("My App", obj.toString());
-
-        } catch (Throwable t) {
-            Log.e("byte", "Error \"" + imgArray + "\"");
-        }
-
-        /********************************************************/
-
         //save image to phone
         try {
             oOutputStream = new FileOutputStream(imageFile);
@@ -322,6 +316,7 @@ public class Camera2Service extends Service {
         }
 
         Log.i("saveImg", "save code running");
+
 
     }
 
