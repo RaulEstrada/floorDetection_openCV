@@ -22,6 +22,13 @@ import android.util.Log;
 import android.widget.Toast;
 
 import org.json.JSONObject;
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,6 +40,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import java.util.Random;
+
+import static org.opencv.imgcodecs.Imgcodecs.imdecode;
+import static org.opencv.imgcodecs.Imgcodecs.imread;
+import static org.opencv.imgcodecs.Imgcodecs.imwrite;
 
 
 /**
@@ -60,7 +71,6 @@ public class Camera2Service extends Service {
      * the session for the capture session of the camera,an image reader to handle the image,
      * a handler thread to run the service on a separate thread to not block the ui,
      * and a handler to run with the new thread*/
-
     private static final String TAG = "Camera2Service";
     private static final int CAMERA = CameraCharacteristics.LENS_FACING_BACK;
     private CameraDevice cameraDevice;
@@ -70,7 +80,26 @@ public class Camera2Service extends Service {
     private Handler mBackgroundHandler;
     public static boolean active = false;
     ImageTools mat = new ImageTools();
+    private boolean you_are_allowed_to_continue = false;
 
+    private BaseLoaderCallback opencv_callback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS: {
+                    Log.i("OpenCVLoad", "OpenCV loaded successfully");
+                    you_are_allowed_to_continue = true;
+                    Log.e(TAG,"Current thread is " + Thread.currentThread().getName());
+
+                }
+                break;
+                default: {
+                    super.onManagerConnected(status);
+                }
+                break;
+            }
+        }
+    };
 
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
@@ -151,37 +180,73 @@ public class Camera2Service extends Service {
 
             //pretty self explanatory. like, c'mon now. read the line. lazy...
             img = reader.acquireLatestImage();
+           /**  onCameraFrame(img);*/
 
             /*the full code below would also have "if-else" or "else" statements
             * to check for other types of retrieved images/files */
             if (img.getFormat() == ImageFormat.JPEG) {
-                //check if we have external storage to write to. if we do, save acquired image
-                if (isExternalStorageWritable())
-                {
-                    /*method to create a new file/item/object and set
-                    it up for a JPEG assignment*/
-                    imgFile = CreateJPEG();
-                    try {
 
-                    /*bytebuffer is a class that allows us to read/write bytes
-                    * here it is used with "Save(... , ...)" to assign these
-                    * collected bytes from the image to the created file from "CreateJpeg()"*/
-                        buffer = img.getPlanes()[0].getBuffer();
-                        bytes = new byte[buffer.remaining()];
-                        buffer.get(bytes);
-                        Save(bytes, imgFile);
-                        img.close();
-                        //ImposedImageArray(imgFile);
-                    } catch (Exception e) {
-                        Log.i("Exception e", "ImageFormat.JPEG,,,,,,,,Exception eException e");
-                        e.getStackTrace();
+                if (you_are_allowed_to_continue){
+                   // Mat opencv_img = imdecode(Mat,int flags)
+
+                    buffer = img.getPlanes()[0].getBuffer();
+                    bytes = new byte[buffer.remaining()];
+
+                    Mat imgMat = new Mat(500, 500, CvType.CV_8UC1);
+                    imgMat.put(0, 0, bytes);
+
+                    if (imgMat.empty())
+                    {
+                        Log.i("OpenCVLoad", "img is null");
                     }
+                    else if (!imgMat.empty())
+                    {
+                        Log.i("OpenCVLoad", "img is NOT null");
+
+                        final long timestamp = System.currentTimeMillis();
+                        String dirName = "Cam 2 Pictures";
+                        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
+                        String dirMat = dir.getAbsolutePath() + "/" + timestamp;
+                        Log.i("OpenCVLoad", dirMat);
+
+                        //imwrite(dirMat, imgMat);
+
+                        mat.SaveImage(imgMat, timestamp);
+                    }
+                    /** max images acquired can be. will crash unless images start being removed */
+                    img.close();
+
+
                 }
+                //check if we have external storage to write to. if we do, save acquired image
+//                if (isExternalStorageWritable())
+//                {
+//                    /*method to create a new file/item/object and set
+//                    it up for a JPEG assignment*/
+//                    imgFile = CreateJPEG();
+//                    try {
+//
+//                    /*bytebuffer is a class that allows us to read/write bytes
+//                    * here it is used with "Save(... , ...)" to assign these
+//                    * collected bytes from the image to the created file from "CreateJpeg()"*/
+//                        buffer = img.getPlanes()[0].getBuffer();
+//                        bytes = new byte[buffer.remaining()];
+//                        buffer.get(bytes);
+//                        Save(bytes, imgFile);
+//                        img.close();
+////                        ImposedImageArray(imgFile);
+//                    } catch (Exception e) {
+//                        Log.i("Exception e", "ImageFormat.JPEG,,,,,,,,Exception eException e");
+//                        e.getStackTrace();
+//                    }
+//                }
             }
         }
     };
 
     private void ImposedImageArray(File imageFile) {
+
+        Log.i("IIA", "ImposedImageArray code running");
 
         //create loop of 1250, and initialize to 0/1 randomly. Superimpose
         //all indexes that have a 1 to the main image
@@ -191,7 +256,11 @@ public class Camera2Service extends Service {
         // Log.i("saveImg", "save code running");
         //  Log.i("abcd", imageFile.getName());
 
-      //  mat.ReadImage(imageFile, imageFile.getName());
+      /** mat.ReadImage(imageFile, imageFile.getName());*/
+
+        onCameraFrame(imageFile, imageFile.getName());
+
+        Log.i("IIA", "code after mat is called in ImposedImageArray");
         //READING
 
 
@@ -351,6 +420,9 @@ public class Camera2Service extends Service {
         startForeground(41413, mBuilder.build());
     }
 
+
+
+
     /**
      * Return the Camera Id which matches the field CAMERA.
      */
@@ -381,7 +453,18 @@ public class Camera2Service extends Service {
     * gets setup as it should, our camera will start reading images at the below specified
     * desired format, size, and repeat interval. */
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.e(TAG,"Current thread is " + Thread.currentThread().getName());
         Log.i(TAG, "onStartCommand from camera service");
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, opencv_callback);
+        } else {
+            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+            opencv_callback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+
+        Log.e(TAG,"I am here");
 
         //background thread started, so we do not block ui thread
         startBackgroundThread();
@@ -521,5 +604,28 @@ public class Camera2Service extends Service {
             active = false;
             Log.i(TAG,"Closed Camera");
         }
+
+    }
+
+
+    public Mat onCameraFrame(File path, String name) {
+        Log.i("onCamFrame","mat onCameraFrame called");
+
+        File file = new File(path.getAbsolutePath(), name);
+        String filename = file.toString();  //filename is correct
+
+        Log.i("onCamFrame","path: " + path.getAbsolutePath());
+        Log.i("onCamFrame","name: " + name);
+        Log.i("onCamFrame","Filename: " + filename);
+
+        final Mat img = imread(path.getAbsolutePath());
+
+        if (img.empty())
+        {
+            Log.i("OpenCVLoad", "img is null");
+            return null;
+        }
+
+         return (img);
     }
 }

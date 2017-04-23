@@ -19,6 +19,10 @@ import org.opencv.imgproc.Imgproc;
 import java.io.File;
 import java.nio.ByteBuffer;
 
+import static org.opencv.imgcodecs.Imgcodecs.imread;
+import static org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY;
+import static org.opencv.imgproc.Imgproc.cvtColor;
+
 public class ImageTools {
 
     private final String TAG_S = "SAVING";
@@ -46,34 +50,41 @@ public class ImageTools {
 //
 //    }
 
-    public Mat ReadImage(File path, String name) {
-
+    public  Mat ReadImage(File path, String name) {
+        Log.i("readImage", "ReadImage executed");
         String dirName = "Cam 2 Pictures";
 
         //File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
-        File file = new File(path, dirName);
+
+        File file = new File(path.getAbsolutePath(), dirName);
+
 
         Mat src = null;
-        String filename = file.toString();
-        // 2.4.11
-        src = Imgcodecs.imread(filename, Imgcodecs.CV_LOAD_IMAGE_COLOR);
-        // 3.0.0
-        // src = Imgcodecs.imread(filename, Imgcodecs.CV_LOAD_IMAGE_COLOR);
+       // Mat src = new Mat();
+        src = null;
+        String filename = file.toString();  //filename is correct
+
+        /** THIS CAUSES ERROR */
+       // src = imread(filename);
 
         if (!src.empty()) {
             Log.i(TAG_R, "SUCCESS Reading the image " + name);
             Imgproc.resize(src, src, new Size(500, 500));
-        } else {
-            Log.d(TAG_R, "Fail Reading the image " + name);
+        } else if (src == null){
+            Log.d("wsad", "Fail Reading the image " + name);
             return null;
         }
-        return src;
+  //      return src;
+        return null;
 
     }
 
 
-    public void SaveImage(Mat img, String name) {
-        File ph = new File("sdcard/Floor/Output");
+    public void SaveImage(Mat img, long name) { //type of 'name' was String. Changed to long
+        Log.i("OpenCVLoad", "ImageTools: SaveImage");
+        String dirName = "Cam 2 Pictures";
+        File ph = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
+
         Mat img2 = new Mat(img.size(), img.type());
         String val = "";
         if (kval < 10)
@@ -84,7 +95,7 @@ public class ImageTools {
             val = "0" + kval;
         else
             val = "" + kval;
-        String filename = name + val + ".png";
+        String filename = name + val + ".jpg";
         kval++;
         File file = new File(ph, filename);
         if (file.exists())
@@ -92,18 +103,15 @@ public class ImageTools {
         Boolean bool = null;
         String filenm = file.toString();
 
-        Imgproc.cvtColor(img, img2, Imgproc.COLOR_RGBA2BGR);
+       // Imgproc.cvtColor(img, img2, Imgproc.COLOR_RGBA2BGR);
+       // cvtColor(img, img2, COLOR_BGR2GRAY);
 
-        // 2.4.11
-        bool = Imgcodecs.imwrite(filenm, img2);
-
-        // 3.0.0
-        //bool = Imgcodecs.imwrite(filenm, img);
+        bool = Imgcodecs.imwrite(filenm, img);
 
         if (bool == true) {
-            Log.i(TAG_S, "SUCCESS writing image " + name);
+            Log.i("OpenCVLoad", "ImageTools: SaveImage: Success writing image");
         } else
-            Log.d(TAG_S, "Fail writing image");
+            Log.d("OpenCVLoad", "ImageTools: SaveImage: Failed to write image");
 
     }
 
@@ -133,7 +141,7 @@ public class ImageTools {
         yuvMat.put(0, 0, imageData);
 
         Mat rgbMat = new Mat();
-        Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV420p2RGBA);
+        cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV420p2RGBA);
         return rgbMat;
     }
 

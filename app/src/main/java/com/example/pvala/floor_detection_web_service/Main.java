@@ -15,34 +15,38 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
+
 import java.text.DecimalFormat;
 
+import static org.opencv.imgcodecs.Imgcodecs.imread;
 
 
 public class Main extends Activity{
 
     private static final int REQUEST_WRITE_STORAGE = 112;
     private static final int REQUEST_CAMERA = 113;
-    private static final int REQUEST_INTERNET = 114;
-    private static final int REQUEST_WIFI = 115;
+    private static final int REQUEST_READ_STORAGE = 114;
 
     boolean canWrite = false;
     boolean useCamera = false;
-    boolean hasInternet = false;
-    boolean connectWifi = false;
-
+    boolean canRead = false;
 
     private Messenger mService = null;
     private Intent deployAgent;
     boolean mBound = false;
 
     private static DecimalFormat fmt = new DecimalFormat("#.#");
-
+    private Button btn;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int [] grantResults){
@@ -52,38 +56,72 @@ public class Main extends Activity{
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     canWrite = true;
                     Toast.makeText(getApplicationContext(), "Permission Granted", Toast.LENGTH_SHORT).show();
+                    Log.i("requests", "write request");
                 }
                 /** ****************************************************************/
             case REQUEST_CAMERA:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     useCamera = true;
                     Toast.makeText(getApplicationContext(), "Permission Granted", Toast.LENGTH_SHORT).show();
+                    Log.i("requests", "camera request");
                 }
                 /** ****************************************************************/
-            case REQUEST_INTERNET:
+            case REQUEST_READ_STORAGE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    hasInternet = true;
+                    canRead = true;
                     Toast.makeText(getApplicationContext(), "Permission Granted", Toast.LENGTH_SHORT).show();
+                    Log.i("requests", "read request");
                 }
                 /** ****************************************************************/
-            case REQUEST_WIFI:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    connectWifi = true;
-                    Toast.makeText(getApplicationContext(), "Permission Granted", Toast.LENGTH_SHORT).show();
-                }
-                /** ****************************************************************/
-
 
         }
     }
 
 
+//    public Mat CVTest()
+//    {
+//        String s = "jkl";
+//        final Mat img = imread(s);
+//
+//        if (img.empty())
+//        {
+//            Log.i("OpenCVLoad", "img is null");
+//            return null;
+//        }
+//        return img;
+//    }
+
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS: {
+                    Log.i("OpenCVLoad", "OpenCV loaded successfully");
+                    // mOpenCvCameraView.enableView();
+                    btn.setEnabled(true);
+                    //CVTest();
+                }
+                break;
+                default: {
+                    super.onManagerConnected(status);
+                }
+                break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        boolean hasReadPermission = (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
+        if (!hasReadPermission){
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_READ_STORAGE);
+        }
+        /** ****************************************************************/
         boolean hasPermission = (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
         if (!hasPermission){
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_STORAGE);
@@ -91,14 +129,19 @@ public class Main extends Activity{
 /** ****************************************************************/
         boolean camPermission = (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED);
         if (!camPermission){
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_WRITE_STORAGE);
+            requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA);
         }
-/** ****************************************************************/
-        boolean internetPermission = (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED);
-        if (!internetPermission){
-            requestPermissions(new String[]{Manifest.permission.INTERNET}, REQUEST_WRITE_STORAGE);
-        }
-/** ****************************************************************/
+
+
+//        if (!OpenCVLoader.initDebug()) {
+//            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+//            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+//        } else {
+//            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+//            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+//        }
+
+
 
         deployAgent = new Intent(this, HiddenAgent.class);
         // bindService(deployAgent, mConnection, Context.BIND_AUTO_CREATE);
@@ -107,7 +150,8 @@ public class Main extends Activity{
 
         //startService(processImage);
 
-        final Button btn = (Button) findViewById(R.id.Start);
+        btn = (Button) findViewById(R.id.Start);
+       // btn.setEnabled(false);
 
         btn.setOnClickListener(new View.OnClickListener(){
             @Override
@@ -119,7 +163,7 @@ public class Main extends Activity{
 
                         startService(processImage);
 
-                        btn.setText(R.string.buttonClicked);
+                        btn.setText("Stop");
                         Message message = Message.obtain(null, HiddenAgent.Start);
                         message.replyTo = new Messenger(new ResponseHandler());
                         try {
@@ -127,6 +171,7 @@ public class Main extends Activity{
                         } catch (RemoteException e) {
                             e.printStackTrace();
                         }
+
 
 //                        startActivity(new Intent(getApplicationContext(), Camera_Activity.class));
 
@@ -136,7 +181,7 @@ public class Main extends Activity{
 
                         stopService(processImage);
 
-                        btn.setText(R.string.buttonUnClicked);
+                        btn.setText("Start");
                         Message message = Message.obtain(null, HiddenAgent.Stop);
                         message.replyTo = new Messenger(new ResponseHandler());
                         try {
@@ -149,6 +194,23 @@ public class Main extends Activity{
                 else bindService(deployAgent, mConnection, Context.BIND_AUTO_CREATE);
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        //load libraries for CV
+        //callback method
+        //super.onResume();
+       // OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+
+        super.onResume();
+//        if (!OpenCVLoader.initDebug()) {
+//            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+//            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+//        } else {
+//            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+//            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+//        }
     }
 
     class ResponseHandler extends Handler {
