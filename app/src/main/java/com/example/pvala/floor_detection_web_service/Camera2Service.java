@@ -21,29 +21,22 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.json.JSONObject;
 import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
+import org.opencv.core.MatOfByte;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import java.util.Random;
 
+import static org.opencv.imgcodecs.Imgcodecs.IMREAD_UNCHANGED;
 import static org.opencv.imgcodecs.Imgcodecs.imdecode;
-import static org.opencv.imgcodecs.Imgcodecs.imread;
-import static org.opencv.imgcodecs.Imgcodecs.imwrite;
 
 
 /**
@@ -180,225 +173,46 @@ public class Camera2Service extends Service {
 
             //pretty self explanatory. like, c'mon now. read the line. lazy...
             img = reader.acquireLatestImage();
-           /**  onCameraFrame(img);*/
 
             /*the full code below would also have "if-else" or "else" statements
             * to check for other types of retrieved images/files */
             if (img.getFormat() == ImageFormat.JPEG) {
 
-                if (you_are_allowed_to_continue){
-                   // Mat opencv_img = imdecode(Mat,int flags)
-
-                    buffer = img.getPlanes()[0].getBuffer();
-                    bytes = new byte[buffer.remaining()];
-
-                    Mat imgMat = new Mat(500, 500, CvType.CV_8UC1);
-                    imgMat.put(0, 0, bytes);
-
-                    if (imgMat.empty())
-                    {
-                        Log.i("OpenCVLoad", "img is null");
-                    }
-                    else if (!imgMat.empty())
-                    {
-                        Log.i("OpenCVLoad", "img is NOT null");
-
-                        final long timestamp = System.currentTimeMillis();
-                        String dirName = "Cam 2 Pictures";
-                        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
-                        String dirMat = dir.getAbsolutePath() + "/" + timestamp;
-                        Log.i("OpenCVLoad", dirMat);
-
-                        //imwrite(dirMat, imgMat);
-
-                        mat.SaveImage(imgMat, timestamp);
-                    }
-                    /** max images acquired can be. will crash unless images start being removed */
-                    img.close();
-
-
-                }
                 //check if we have external storage to write to. if we do, save acquired image
-//                if (isExternalStorageWritable())
-//                {
-//                    /*method to create a new file/item/object and set
-//                    it up for a JPEG assignment*/
-//                    imgFile = CreateJPEG();
-//                    try {
-//
-//                    /*bytebuffer is a class that allows us to read/write bytes
-//                    * here it is used with "Save(... , ...)" to assign these
-//                    * collected bytes from the image to the created file from "CreateJpeg()"*/
-//                        buffer = img.getPlanes()[0].getBuffer();
-//                        bytes = new byte[buffer.remaining()];
-//                        buffer.get(bytes);
-//                        Save(bytes, imgFile);
-//                        img.close();
-////                        ImposedImageArray(imgFile);
-//                    } catch (Exception e) {
-//                        Log.i("Exception e", "ImageFormat.JPEG,,,,,,,,Exception eException e");
-//                        e.getStackTrace();
-//                    }
-//                }
+                if (isExternalStorageWritable())
+                {
+                    /*method to create a new file/item/object and set
+                    it up for a JPEG assignment*/
+                    //imgFile = CreateJPEG();
+                    try {
+
+                    /*bytebuffer is a class that allows us to read/write bytes
+                    * here it is used with "Save(... , ...)" to assign these
+                    * collected bytes from the image to the created file from "CreateJpeg()"*/
+                        buffer = img.getPlanes()[0].getBuffer();
+                        int h = img.getHeight();
+                        int w = img.getWidth();
+                        Mat imgMat = new Mat(w,h, CvType.CV_8UC3);
+
+                        bytes = new byte[buffer.remaining()];
+                        buffer.get(bytes);
+
+                        MatOfByte m = new MatOfByte(bytes);
+                        imgMat = imdecode(m, IMREAD_UNCHANGED);
+
+
+                        mat.SaveImage(imgMat,System.currentTimeMillis());
+                        img.close();
+
+
+                    } catch (Exception e) {
+                        Log.i("Exception e", "ImageFormat.JPEG,,,,,,,,Exception eException e");
+                        e.getStackTrace();
+                    }
+                }
             }
         }
     };
-
-    private void ImposedImageArray(File imageFile) {
-
-        Log.i("IIA", "ImposedImageArray code running");
-
-        //create loop of 1250, and initialize to 0/1 randomly. Superimpose
-        //all indexes that have a 1 to the main image
-        Random rand = new Random();
-        int  n = rand.nextInt(2);
-
-        // Log.i("saveImg", "save code running");
-        //  Log.i("abcd", imageFile.getName());
-
-      /** mat.ReadImage(imageFile, imageFile.getName());*/
-
-        onCameraFrame(imageFile, imageFile.getName());
-
-        Log.i("IIA", "code after mat is called in ImposedImageArray");
-        //READING
-
-
-//        //sets up variable to receive bytes
-//        OutputStream oOutputStream = null;
-//        /* the following try-catch is used to write the bytes of the image to
-//        * a file. a new outputstream is created of the imageFile which is passed
-//        * into this method, and the bytes passed in are the ones used to make the imageFile a
-//        * viewable image. */
-//        try {
-//            oOutputStream = new FileOutputStream(imageFile);
-//            oOutputStream.write(bytes);
-//        } catch (Exception ex) {
-//            throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-//        } finally {
-//            try {
-//                if (oOutputStream != null) {
-//                    oOutputStream.close();
-//                }
-//            } catch (Exception ex) {
-//                throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-//            }
-//        }
-//
-//        //save image to phone
-//        try {
-//            oOutputStream = new FileOutputStream(imageFile);
-//            oOutputStream.write(bytes);
-//        } catch (Exception ex) {
-//            throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-//        } finally {
-//            try {
-//                if (oOutputStream != null) {
-//                    oOutputStream.close();
-//                }
-//            } catch (Exception ex) {
-//                throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-//            }
-//        }
-       // Log.i("saveImg", "save code running");
-      //  Log.i("abcd", imageFile.getName());
-
-       // mat.ReadImage(imageFile, imageFile.getName());
-        //READING
-
-
-    }
-
-
-
-
-    /* the following method creates a file with a JPEG extension. this is done
-    * in an attempt to create a file to be ready to receive the bytes of the
-    * image acquired*/
-    private File CreateJPEG() {
-
-        //name for the future file-to-be
-        final long timestamp = System.currentTimeMillis();
-        String dirName = "Cam 2 Pictures";
-//
-//        //this is the location of the saved file
-        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
-        if (!dir.exists()) {
-            dir.mkdir();
-        }
-        //formats the name of the file to a string
-        String sFilename = String.format("%d.jpg", timestamp);
-
-//        try {
-//            mat.ReadImage(dir, sFilename);
-//        }
-//        catch (Exception ex) {
-//            Log.i("READING", "mat failed");
-//        }
-
-
-        //returns the location of the created file and its name
-        return new File(dir, sFilename);
-    }
-
-
-    /* the following method saves the acquired bytes to the newly created file from
-    * CreateJPEG()*/
-    private void Save(byte[] bytes, File imageFile) {
-
-        //sets up variable to receive bytes
-        OutputStream oOutputStream = null;
-
-        /* the following try-catch is used to write the bytes of the image to
-        * a file. a new outputstream is created of the imageFile which is passed
-        * into this method, and the ytes passed in are the ones used to make the imageFile a
-        * viewable image. */
-        try {
-            oOutputStream = new FileOutputStream(imageFile);
-            oOutputStream.write(bytes);
-        } catch (Exception ex) {
-            throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-        } finally {
-            try {
-                if (oOutputStream != null) {
-                    oOutputStream.close();
-                }
-            } catch (Exception ex) {
-                throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-            }
-        }
-
-        //save image to phone
-        try {
-            oOutputStream = new FileOutputStream(imageFile);
-            oOutputStream.write(bytes);
-        } catch (Exception ex) {
-            throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-        } finally {
-            try {
-                if (oOutputStream != null) {
-                    oOutputStream.close();
-                }
-            } catch (Exception ex) {
-                throw new RuntimeException(String.format("%s(%s)", ex.toString(), "ImageGenerator.SaveBytesToFile"));
-            }
-        }
-
-        Log.i("saveImg", "save code running");
-
-
-    }
-
-
-
-//    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
-//
-//    static {
-//        ORIENTATIONS.append(Surface.ROTATION_0, 90);
-//        ORIENTATIONS.append(Surface.ROTATION_90, 0);
-//        ORIENTATIONS.append(Surface.ROTATION_180, 270);
-//        ORIENTATIONS.append(Surface.ROTATION_270, 180);
-//    }
 
 
     //state of the app once tapped on
@@ -486,7 +300,7 @@ public class Camera2Service extends Service {
             * so we can ignore the presented error.
             *
             * or not, whatever...*/
-            manager.openCamera(getCamera(manager), cameraStateCallback, null);
+            manager.openCamera(getCamera(manager), cameraStateCallback, null); /** ignore error. warns about checking permissions. this happens in main*/
         } catch (CameraAccessException e) {
             Log.e(TAG, e.getMessage());
         } catch (InterruptedException e) {
@@ -607,25 +421,4 @@ public class Camera2Service extends Service {
 
     }
 
-
-    public Mat onCameraFrame(File path, String name) {
-        Log.i("onCamFrame","mat onCameraFrame called");
-
-        File file = new File(path.getAbsolutePath(), name);
-        String filename = file.toString();  //filename is correct
-
-        Log.i("onCamFrame","path: " + path.getAbsolutePath());
-        Log.i("onCamFrame","name: " + name);
-        Log.i("onCamFrame","Filename: " + filename);
-
-        final Mat img = imread(path.getAbsolutePath());
-
-        if (img.empty())
-        {
-            Log.i("OpenCVLoad", "img is null");
-            return null;
-        }
-
-         return (img);
-    }
 }
