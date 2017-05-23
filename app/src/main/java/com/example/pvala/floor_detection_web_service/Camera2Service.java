@@ -204,6 +204,7 @@ public class Camera2Service extends Service {
                         mat.SaveImage(imgMat,System.currentTimeMillis());
                         img.close();
 
+
                     } catch (Exception e) {
                         Log.i("Exception e", "ImageFormat.JPEG,,,,,,,,Exception eException e");
                         e.getStackTrace();
